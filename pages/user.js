@@ -1,11 +1,37 @@
 import { getSession, signOut } from 'next-auth/react';
+import UsersSchema from '../lib/userSchema';
+import connectDB from '../lib/connectDB';
+import { useState } from 'react';
+import axios from 'axios';
 
 // gets a prop from getServerSideProps
-function User({ user }) {
+function User({ user, bio }) {
+	const [value, setValue] = useState('');
+	async function updateBio() {
+		const { data } = await axios.post(
+			'/api/updateBio',
+			{
+				profileId: user.profileId,
+				bio: value,
+			},
+			{ headers: { 'content-type': 'application/json' } }
+		);
+
+		console.log(`updated bio: ${data.bio}`);
+		location.reload();
+	}
 	return (
 		<div>
 			<h4>User session:</h4>
-			<pre>{JSON.stringify(user, null, 2)}</pre>
+			<div>Address: {user.address}</div>
+			<div>Bio: {bio}</div>
+			<br />
+			<input
+				type='text'
+				onChange={e => setValue(e.target.value)}
+				value={value}
+			/>
+			<button onClick={updateBio}>Update Bio</button>
 			<button onClick={() => signOut({ redirect: '/signin' })}>Sign out</button>
 		</div>
 	);
@@ -24,8 +50,18 @@ export async function getServerSideProps(context) {
 		};
 	}
 
+	await connectDB();
+
+	const mongoUser = await UsersSchema.findOne({
+		profileId: session?.user.profileId,
+	}).lean();
+
+	if (mongoUser !== null) {
+		mongoUser.bio = mongoUser.bio.toString();
+	}
+
 	return {
-		props: { user: session.user },
+		props: { user: session.user, bio: mongoUser.bio },
 	};
 }
 

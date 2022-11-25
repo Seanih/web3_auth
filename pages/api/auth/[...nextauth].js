@@ -34,7 +34,7 @@ export default NextAuth({
 
 					const user = { address, profileId, signature };
 
-					//
+					// connect to DB and check if user data already exists
 					await connectDB();
 					const MongoUser = await Users.findOne({ profileId });
 
